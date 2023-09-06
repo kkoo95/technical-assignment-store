@@ -1,5 +1,6 @@
-import { Restrict, Store } from "./store";
+import { Store } from "./store";
 import { UserStore } from "./userStore";
+import { Restrict } from "./restrict";
 
 const credentialStore = new Store();
 credentialStore.writeEntries({ username: "user1" });

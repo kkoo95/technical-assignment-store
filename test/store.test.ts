@@ -1,8 +1,9 @@
 import { JSONObject } from "../src/json-types";
-import {Permission, Restrict, Store, StoreValue} from "../src/store";
+import {Permission, Store, StoreValue} from "../src/store";
 import { UserStore } from "../src/userStore";
 import { AdminStore } from "./../src/adminStore";
 import { lazy } from "../src/lazy";
+import { Restrict } from "../src/restrict";
 
 /*
 
