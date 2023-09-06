@@ -103,9 +103,31 @@ export class Store implements IStore {
     return (index == maxIndex) ? nested : undefined;
   }
 
+  private preProcessStoreValue(value: StoreValue): StoreValue {
+    if (value && typeof value == 'object' && !Array.isArray(value) && !(value instanceof Store)) {
+      let copy: StoreValue = {}
+
+      for (let key in value) {
+        let val = value[key];
+        if (key === "store") {
+          const store = new Store();
+          store.writeEntries(this.preProcessStoreValue(val) as JSONObject)
+          copy[key] = store as unknown as JSONValue;
+        } else if (typeof val === "object" && val !== null) {
+          copy[key] = this.preProcessStoreValue(val) as unknown as JSONValue;
+        } else {
+          copy[key] = val;
+        }
+      }
+
+      value = copy;
+    }
+    return value;
+  }
+
   write(path: string, value: StoreValue): StoreValue {
     const pathArr = path.split(':');
-    return this.writePathAt(pathArr, value);
+    return this.writePathAt(pathArr, this.preProcessStoreValue(value));
   }
 
   private writePathAt(path: string[], value: StoreValue, start = 0): StoreValue {
@@ -136,7 +158,7 @@ export class Store implements IStore {
       nested = nested[key];
     }
 
-    return this;
+    return value;
   }
 
   writeEntries(entries: JSONObject): void {
