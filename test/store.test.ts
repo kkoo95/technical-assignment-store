@@ -1,5 +1,5 @@
 import { JSONObject } from "../src/json-types";
-import { Permission, Restrict, Store } from "../src/store";
+import {Permission, Restrict, Store, StoreValue} from "../src/store";
 import { UserStore } from "../src/userStore";
 import { AdminStore } from "./../src/adminStore";
 import { lazy } from "../src/lazy";
@@ -117,9 +117,115 @@ describe("Nested Store Operations", () => {
     expect(store.read("b:c")).toBe("value2");
   });
 
+  it("should write allowed entries only to the store", () => {
+    class AStore extends Store {
+      @Restrict('r') f1 = '';
+      @Restrict('r') f2 = {
+        f3: 42,
+        f4: {
+          foo: 'bar'
+        }
+      };
+      @Restrict('rw') f5 = '';
+      @Restrict('rw') f6 = {
+        f7: 43,
+        f8: {
+          kik: 'lol'
+        }
+      };
+      defaultPolicy: Permission = 'none';
+    }
+
+    class BStore extends Store {
+      @Restrict('rw') public aStore: AStore
+      @Restrict('r') f1 = '';
+      @Restrict('r') f2 = {
+        f3: 42,
+        f4: {
+          foo: 'bar'
+        }
+      };
+      @Restrict('rw') f5 = '';
+      @Restrict('rw') f6 = {
+        f7: 43,
+        f8: {
+          kik: 'lol'
+        }
+      };
+      defaultPolicy: Permission = 'none';
+
+      constructor(aStore: AStore) {
+        super();
+        this.aStore = aStore;
+      }
+    }
+
+    const aStore = new AStore();
+    const bStore = new BStore(aStore);
+
+    const baseEntries: JSONObject = {
+      f1: "value1",
+      f2: {
+        f3: 45,
+        f4: {
+          foo: 'foo'
+        }
+      },
+      f5: "value2",
+      f6: {
+        f7: 46,
+        f8: {
+          kik: 'mpm',
+          f9: 'value3'
+        }
+      },
+    };
+    const entries = {
+      ...baseEntries,
+      aStore: {
+        ...baseEntries
+      }
+    }
+    bStore.writeEntries(entries);
+    expect(bStore.entries()).toStrictEqual({
+      "f1": "",
+      "f2": {
+        "f3": 42,
+        "f4": {
+          "foo": "bar"
+        }
+      },
+      "f5": "value2",
+      "f6": {
+        "f7": 46,
+        "f8": {
+          "f9": "value3",
+          "kik": "mpm"
+        }
+      },
+      "aStore": {
+        "f1": "",
+        "f2": {
+          "f3": 42,
+          "f4": {
+            "foo": "bar"
+          }
+        },
+        "f5": "value2",
+        "f6": {
+          "f7": 46,
+          "f8": {
+            "f9": "value3",
+            "kik": "mpm"
+          }
+        }
+      },
+    });
+  });
+
   it("should be able to loop on a store", () => {
     const store = new Store();
-    const entries: JSONObject = { value: "value", store: { value: "value" } };
+    const entries: StoreValue = { value: "value", store: { value: "value" } };
     store.write("deep", entries);
     const cStore = store.read("deep:store") as Store;
     cStore.write("deep", entries);
